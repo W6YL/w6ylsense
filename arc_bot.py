@@ -116,7 +116,7 @@ class SerialHandler(InterruptableThread):
                 self.serial.open()
                 self.state["USB_retries"] = 0
 
-                self.__handshake()
+                self.initialize_connection()
                 return
             except:
                 self.state["USB_retries"] += 1
@@ -124,7 +124,7 @@ class SerialHandler(InterruptableThread):
             time.sleep(1)
         raise OSError("Failed to reconnect to USB")
 
-    def __run(self):
+    def initialize_connection(self):
         self.__handshake()
 
         channel = self.bot.get_channel(self.config["channel_id"])
@@ -135,6 +135,9 @@ class SerialHandler(InterruptableThread):
             self.set_led_state(True)
         else:
             self.set_led_state(False)
+
+    def __run(self):
+        self.initialize_connection()
 
         while not self.is_stop_requested():
             try:
