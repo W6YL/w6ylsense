@@ -4,6 +4,7 @@ import requests
 import random
 import time
 import json
+import rel
 
 class ShitcordBot:
     def __init__(self, **kwargs):
@@ -122,7 +123,9 @@ class ShitcordBot:
         self.subscribed_events[event].append(callback)
 
     def run_forever(self):
-        self.ws.run_forever()
+        self.ws.run_forever(dispatcher=rel, reconnect=5)
+        rel.signal(2, rel.abort)
+        rel.dispatch()
 
     def update_channel(self, channel_id, name) -> requests.Response:
         return self.__send_restful("PATCH", f"/channels/{channel_id}", {

@@ -4,6 +4,7 @@ import requests
 import serial
 import time
 import json
+import rel
 
 class InterruptableThread:
     def __init__(self, target=None):
@@ -123,6 +124,7 @@ class SerialHandler(InterruptableThread):
                 command, = self.serial.read()
                 if command == 0x01:
                     self.__handle_press()
+            time.sleep(0.1)
 
 def main():
     # Load the token from a file
