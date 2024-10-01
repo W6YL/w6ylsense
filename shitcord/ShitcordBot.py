@@ -60,7 +60,7 @@ class ShitcordBot:
             time.sleep(self.connection_state["heartbeat_interval"])
     
     def __on_gateway_hello(self, data):
-        self.connection_state["heartbeat_interval"] = data["d"]["heartbeat_interval"]
+        self.connection_state["heartbeat_interval"] = data["d"]["heartbeat_interval"] / 1000
         threading.Thread(
             target=self.__heartbeat,
             daemon=True
