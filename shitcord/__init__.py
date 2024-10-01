@@ -1,0 +1,1 @@
+from shitcord.ShitcordBot import ShitcordBot
