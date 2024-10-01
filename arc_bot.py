@@ -39,7 +39,8 @@ class SerialHandler(InterruptableThread):
         }
 
         self.state = {
-            "LED_state": False
+            "LED_state": False,
+            "ignore_next_update": False
         }
 
         InterruptableThread.__init__(self, target=self.__run)
@@ -56,6 +57,7 @@ class SerialHandler(InterruptableThread):
             return
         
         # Update the channel
+        self.state["ignore_next_update"] = True # Prevent this from doing weird stuff
         status = self.bot.update_channel(self.config["channel_id"], "shack-closed" if self.state["LED_state"] else "shack-open") # Inverted because it is changing states
         status = self.__check_status(status)
         
@@ -63,12 +65,17 @@ class SerialHandler(InterruptableThread):
             self.set_led_state(not self.state["LED_state"]) # Invert the LED state
             print(f"Button pressed, LED state: {self.state['LED_state']}")
         else:
+            self.state["ignore_next_update"] = False
             print("Failed to update channel")
             self.blink_error(3)
         
         self.last_time_button_was_pressed = time.time()
     
     def handle_channel_update(self, data):
+        if self.state["ignore_next_update"]:
+            self.state["ignore_next_update"] = False
+            return
+        
         if int(data["d"]["id"]) == self.config["channel_id"]:
             print("Got channel update")
             if data["d"]["name"] == "shack-open":
