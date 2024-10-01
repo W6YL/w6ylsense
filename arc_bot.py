@@ -2,6 +2,7 @@ import threading
 import shitcord
 import requests
 import serial
+import time
 import json
 
 class InterruptableThread:
@@ -47,21 +48,25 @@ class SerialHandler(InterruptableThread):
         return status.status_code == 200
 
     def __handle_press(self):
-        self.set_led_state(not self.state["LED_state"])
+        # Stop people from spamming the button
+        if time.time() - self.last_time_button_was_pressed < 30:
+            print(f"Button pressed too soon, there is {30 - (time.time() - self.last_time_button_was_pressed)}s left")
+            self.last_time_button_was_pressed = time.time()
+            self.blink_error(5)
+            return
         
-        # LED_state = bool.from_bytes(self.serial.read())
-        # if time.time() - self.last_time_button_was_pressed < 30:
-        #     print(f"Button pressed too soon, there is {30 - (time.time() - self.last_time_button_was_pressed)}s left")
-        #     serial.write(b"\x00")
-        #     self.last_time_button_was_pressed = time.time()
-        #     return
+        # Update the channel
+        status = self.bot.update_channel(self.config["channel_id"], "shack-closed" if self.state["LED_state"] else "shack-open") # Inverted because it is changing states
+        status = self.__check_status(status)
         
-        # status = self.bot.update_channel(self.config["channel_id"], "shack-open" if LED_state else "shack-closed")
-        # status = self.__check_status(status)
-
-        # print(f"LED state: {LED_state}, status: {status}")
-        # self.serial.write(bytes([status]))
-        # self.last_time_button_was_pressed = time.time()
+        if status:
+            self.set_led_state(not self.state["LED_state"]) # Invert the LED state
+            print(f"Button pressed, LED state: {self.state['LED_state']}")
+        else:
+            print("Failed to update channel")
+            self.blink_error(3)
+        
+        self.last_time_button_was_pressed = time.time()
     
     def handle_channel_update(self, data):
         if int(data["d"]["id"]) == self.config["channel_id"]:
@@ -85,6 +90,14 @@ class SerialHandler(InterruptableThread):
     def set_led_state(self, state):
         self.serial.write(b"\x01" + bytes([state]))
         self.state["LED_state"] = state
+    
+    def blink_error(self, times=3):
+        for _ in range(times):
+            self.serial.write(b"\x01\x00")
+            time.sleep(0.2)
+            self.serial.write(b"\x01\x01")
+            time.sleep(0.2)
+        self.set_led_state(self.state["LED_state"])
 
     def __run(self):
         self.__handshake()
