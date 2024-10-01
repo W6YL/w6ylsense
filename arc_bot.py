@@ -36,6 +36,7 @@ class SerialHandler(InterruptableThread):
         self.config = {
             "channel_id": None,
             "usb_retries": 5,
+            "press_delay": 120,
             **kwargs
         }
 
@@ -52,10 +53,11 @@ class SerialHandler(InterruptableThread):
 
     def __handle_press(self):
         # Stop people from spamming the button
-        if time.time() - self.last_time_button_was_pressed < 30:
-            print(f"Button pressed too soon, there is {30 - (time.time() - self.last_time_button_was_pressed)}s left")
+        if time.time() - self.last_time_button_was_pressed < self.config["press_delay"]:
+            time_remaining = self.config["press_delay"] - (time.time() - self.last_time_button_was_pressed)
+            print(f"Button pressed too soon, there is {round(time_remaining,1)}s left")
             self.last_time_button_was_pressed = time.time()
-            self.blink_error(5)
+            self.blink_error(2)
             return
         
         # Update the channel
@@ -69,7 +71,7 @@ class SerialHandler(InterruptableThread):
         else:
             self.state["ignore_next_update"] = False
             print("Failed to update channel")
-            self.blink_error(3)
+            self.blink_error(5)
         
         self.last_time_button_was_pressed = time.time()
     
