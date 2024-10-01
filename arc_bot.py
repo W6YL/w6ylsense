@@ -115,6 +115,8 @@ class SerialHandler(InterruptableThread):
                 self.serial.close()
                 self.serial.open()
                 self.state["USB_retries"] = 0
+
+                self.__handshake()
                 return
             except:
                 self.state["USB_retries"] += 1
