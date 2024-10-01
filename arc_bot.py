@@ -122,7 +122,6 @@ def main():
     config = json.load(open("config.json"))
     arc_bot = shitcord.ShitcordBot(
         token=config["token"],
-        debug=True,
         intents=1 # Only subscribe to what I need
     )
     serial_handler = SerialHandler(config["serial_port"], config["serial_baudrate"], arc_bot,
