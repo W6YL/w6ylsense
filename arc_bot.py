@@ -35,12 +35,14 @@ class SerialHandler(InterruptableThread):
 
         self.config = {
             "channel_id": None,
+            "usb_retries": 5,
             **kwargs
         }
 
         self.state = {
             "LED_state": False,
-            "ignore_next_update": False
+            "ignore_next_update": False,
+            "USB_retries": 0
         }
 
         InterruptableThread.__init__(self, target=self.__run)
@@ -106,6 +108,20 @@ class SerialHandler(InterruptableThread):
             time.sleep(0.2)
         self.set_led_state(self.state["LED_state"])
 
+    def try_reconnect(self):
+        while self.state["USB_retries"] < self.config["usb_retries"]:
+            print(f"Attempting to reconnect to USB... (Attempt {self.state['USB_retries'] + 1}/{self.config['usb_retries']})")
+            try:
+                self.serial.close()
+                self.serial.open()
+                self.state["USB_retries"] = 0
+                return
+            except:
+                self.state["USB_retries"] += 1
+                time.sleep(1)
+            time.sleep(1)
+        raise OSError("Failed to reconnect to USB")
+
     def __run(self):
         self.__handshake()
 
@@ -119,11 +135,15 @@ class SerialHandler(InterruptableThread):
             self.set_led_state(False)
 
         while not self.is_stop_requested():
-            if self.serial.in_waiting:
-                command, = self.serial.read()
-                if command == 0x01:
-                    self.__handle_press()
-            time.sleep(0.1)
+            try:
+                if self.serial.in_waiting:
+                    command, = self.serial.read()
+                    if command == 0x01:
+                        self.__handle_press()
+                time.sleep(0.1)
+            except OSError:
+                self.try_reconnect()
+
 
 def main():
     # Load the token from a file
