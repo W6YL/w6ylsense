@@ -110,9 +110,11 @@ class ShitcordBot:
 
     def __ws_on_open(self, ws):
         self.connection_state["connected"] = True
+        self.__print_debug("Connected")
     
     def __ws_on_close(self, ws, close_status_code, close_msg):
         self.connection_state["connected"] = False
+        self.__print_debug("Disconnected")
 
     def _subscribe_op(self, opcode, callback):
         self.subscribed_ops[opcode] = callback

@@ -4,7 +4,6 @@ import requests
 import serial
 import time
 import json
-import rel
 
 class InterruptableThread:
     def __init__(self, target=None):
