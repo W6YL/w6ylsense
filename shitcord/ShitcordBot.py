@@ -125,9 +125,7 @@ class ShitcordBot:
         self.subscribed_events[event].append(callback)
 
     def run_forever(self):
-        self.ws.run_forever(dispatcher=rel, reconnect=5)
-        rel.signal(2, rel.abort)
-        rel.dispatch()
+        self.ws.run_forever()
 
     def update_channel(self, channel_id, name) -> requests.Response:
         return self.__send_restful("PATCH", f"/channels/{channel_id}", {
@@ -136,3 +134,5 @@ class ShitcordBot:
     
     def get_channel(self, channel_id) -> requests.Response:
         return self.__send_restful("GET", f"/channels/{channel_id}")
+    
+

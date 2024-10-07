@@ -43,7 +43,8 @@ class SerialHandler(InterruptableThread):
         self.state = {
             "LED_state": False,
             "ignore_next_update": False,
-            "USB_retries": 0
+            "USB_retries": 0,
+            "power_state": False
         }
 
         InterruptableThread.__init__(self, target=self.__run)
@@ -74,6 +75,14 @@ class SerialHandler(InterruptableThread):
             self.blink_error(5)
         
         self.last_time_button_was_pressed = time.time()
+
+    def __handle_power_on(self):
+        self.state["power_state"] = True
+        self.serial.write(b"\x02\x01")
+    
+    def __handle_power_off(self):
+        self.state["power_state"] = False
+        self.serial.write(b"\x02\x00")
     
     def handle_channel_update(self, data):
         if self.state["ignore_next_update"]:
@@ -147,6 +156,10 @@ class SerialHandler(InterruptableThread):
                     command, = self.serial.read()
                     if command == 0x01:
                         self.__handle_press()
+                    if command == 0x02:
+                        self.__handle_power_on()
+                    if command == 0x03:
+                        self.__handle_power_off()
                 time.sleep(0.1)
             except OSError:
                 self.try_reconnect()
