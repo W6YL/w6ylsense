@@ -44,7 +44,8 @@ class SerialHandler(InterruptableThread):
             "LED_state": False,
             "ignore_next_update": False,
             "USB_retries": 0,
-            "power_state": False
+            "power_state": False,
+            "power_keyup_time": None,
         }
 
         InterruptableThread.__init__(self, target=self.__run)
@@ -52,7 +53,11 @@ class SerialHandler(InterruptableThread):
     def __check_status(self, status: requests.Response):
         return status.status_code == 200
 
-    def __handle_press(self):
+    def __handle_press(self, btn_state):
+        # Ignore keyup event
+        if not btn_state:
+            return
+        
         # Stop people from spamming the button
         if time.time() - self.last_time_button_was_pressed < self.config["press_delay"]:
             time_remaining = self.config["press_delay"] - (time.time() - self.last_time_button_was_pressed)
@@ -76,11 +81,27 @@ class SerialHandler(InterruptableThread):
         
         self.last_time_button_was_pressed = time.time()
 
-    def __handle_power_on(self):
-        self.state["power_state"] = True
-        self.serial.write(b"\x02\x01")
+    def __handle_power_on(self, btn_state):
+        if btn_state:
+            self.state["power_keyup_time"] = time.time()
+            return
+        
+        if not btn_state:
+            self.state["power_keyup_time"] = None
     
-    def __handle_power_off(self):
+    def __handle_power_on_loop(self):
+        if self.state["power_keyup_time"]:
+            if not self.state["power_state"]:
+                if time.time() - self.state["power_keyup_time"] > 5:
+                    self.state["power_state"] = True
+                    self.serial.write(b"\x02\x01")
+                    self.blink_error(3)
+    
+    def __handle_power_off(self, btn_state):
+        # Ignore keyup event
+        if not btn_state:
+            return
+        
         self.state["power_state"] = False
         self.serial.write(b"\x02\x00")
     
@@ -153,14 +174,19 @@ class SerialHandler(InterruptableThread):
         while not self.is_stop_requested():
             try:
                 if self.serial.in_waiting:
-                    command, = self.serial.read()
+                    command, btn_state = self.serial.read(2)
+                    btn_state = bool(btn_state)
+
                     if command == 0x01:
-                        self.__handle_press()
+                        self.__handle_press(btn_state)
                     if command == 0x02:
-                        self.__handle_power_on()
+                        self.__handle_power_on(btn_state)
                     if command == 0x03:
-                        self.__handle_power_off()
+                        self.__handle_power_off(btn_state)
                 time.sleep(0.1)
+
+                # Loop events
+                self.__handle_power_on_loop()
             except OSError:
                 self.try_reconnect()
 

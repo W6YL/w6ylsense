@@ -152,21 +152,36 @@ void loop() {
   if (led_button_state && !led_button_pressed) {
     led_button_pressed = true;
     Serial.write(0x01); // Led button was pressed
+    Serial.write(0x01);
   } else if (!led_button_state) {
+    if (led_button_pressed) {
+      Serial.write(0x01); // Led button was depressed
+      Serial.write(0x00);
+    }
     led_button_pressed = false;
   }
 
   if (enable_button_state && !enable_button_pressed) {
     enable_button_pressed = true;
     Serial.write(0x02); // Enable button was pressed
+    Serial.write(0x01);
   } else if (!enable_button_state) {
+    if (enable_button_pressed) {
+      Serial.write(0x02); // Enable button was depressed
+      Serial.write(0x00);
+    }
     enable_button_pressed = false;
   }
 
   if (!disable_button_state && disable_button_pressed) {
     disable_button_pressed = false;
     Serial.write(0x03); // Disable button was pressed
+    Serial.write(0x01);
   } else if (disable_button_state) {
+    if (disable_button_pressed) {
+      Serial.write(0x03); // Disable button was depressed
+      Serial.write(0x00);
+    }
     disable_button_pressed = true;
   }
   
