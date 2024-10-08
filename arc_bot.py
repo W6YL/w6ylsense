@@ -46,6 +46,7 @@ class SerialHandler(InterruptableThread):
             "USB_retries": 0,
             "power_state": False,
             "power_keyup_time": None,
+            "power_blink_state": False,
         }
 
         InterruptableThread.__init__(self, target=self.__run)
@@ -84,7 +85,7 @@ class SerialHandler(InterruptableThread):
     def __handle_power_on(self, btn_state):
         if btn_state:
             self.state["power_keyup_time"] = time.time()
-            return
+            self.state["power_blink_state"] = self.state["LED_state"]
         
         if not btn_state:
             self.state["power_keyup_time"] = None
@@ -92,10 +93,16 @@ class SerialHandler(InterruptableThread):
     def __handle_power_on_loop(self):
         if self.state["power_keyup_time"]:
             if not self.state["power_state"]:
-                if time.time() - self.state["power_keyup_time"] > 5:
+                dt = time.time() - self.state["power_keyup_time"]
+                if dt > 3:
                     self.state["power_state"] = True
                     self.serial.write(b"\x02\x01")
-                    self.blink_error(3)
+                    self.set_led_state(self.state["LED_state"], False)
+                    print("Power on")
+                elif round(dt,1) % 0.5 == 0:
+                    print(f"Power on in {round(3-dt,1)}s")
+                    self.state["power_blink_state"] = not self.state["power_blink_state"]
+                    self.set_led_state(self.state["power_blink_state"], False)
     
     def __handle_power_off(self, btn_state):
         # Ignore keyup event
@@ -128,9 +135,10 @@ class SerialHandler(InterruptableThread):
             raise ValueError("Handshake failed")
         print("Handshake successful")
 
-    def set_led_state(self, state):
+    def set_led_state(self, state, save_state=True):
         self.serial.write(b"\x01" + bytes([state]))
-        self.state["LED_state"] = state
+        if save_state:
+            self.state["LED_state"] = state
     
     def blink_error(self, times=3):
         for _ in range(times):
@@ -170,12 +178,16 @@ class SerialHandler(InterruptableThread):
 
     def __run(self):
         self.initialize_connection()
+        st = time.time()
 
         while not self.is_stop_requested():
             try:
                 if self.serial.in_waiting:
                     command, btn_state = self.serial.read(2)
                     btn_state = bool(btn_state)
+                    if time.time() - st < 2:
+                        print(f"Timeout not reached: {command}, {btn_state}")
+                        continue
 
                     if command == 0x01:
                         self.__handle_press(btn_state)

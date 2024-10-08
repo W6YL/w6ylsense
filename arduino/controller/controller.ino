@@ -138,6 +138,13 @@ void setup() {
   Serial.begin(9600);
 
   handshake();
+
+  // Initialize debounce
+  for (int i = 0; i < 10; i++) {
+    LED_Button.read();
+    Enable_Button.read();
+    Disable_Button.read();
+  }
 }
 
 void waitForSerial(int numBytes) {
@@ -178,7 +185,7 @@ void loop() {
     Serial.write(0x03); // Disable button was pressed
     Serial.write(0x01);
   } else if (disable_button_state) {
-    if (disable_button_pressed) {
+    if (!disable_button_pressed) {
       Serial.write(0x03); // Disable button was depressed
       Serial.write(0x00);
     }
