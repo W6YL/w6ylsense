@@ -89,6 +89,7 @@ class SerialHandler(InterruptableThread):
         
         if not btn_state:
             self.state["power_keyup_time"] = None
+            self.set_led_state(self.state["LED_state"], False)
     
     def __handle_power_on_loop(self):
         if self.state["power_keyup_time"]:
