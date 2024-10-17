@@ -1,5 +1,6 @@
 #define POWER_RELAY_PIN 12
 #define LED_RELAY_PIN 11
+#define DOOR_RELAY_PIN 7
 
 #define TOGGLE_LED_PIN 10
 #define ENABLE_PIN 9
@@ -127,10 +128,12 @@ bool disable_button_pressed = false;
 
 bool led_state = false;
 bool pwr_state = false;
+bool door_state = false;
 
 void setup() {
   pinMode(POWER_RELAY_PIN, OUTPUT);
   pinMode(LED_RELAY_PIN, OUTPUT);
+  pinMode(DOOR_RELAY_PIN, OUTPUT);
 
   pinMode(TOGGLE_LED_PIN, INPUT_PULLUP);
   pinMode(ENABLE_PIN, INPUT_PULLUP);
@@ -205,10 +208,15 @@ void loop() {
         waitForSerial(1);
         pwr_state = Serial.read();
         break;
+      case 0x03:
+        waitForSerial(1);
+        door_state = Serial.read();
+        break;
     }
   }
 
 
   digitalWrite(LED_RELAY_PIN, led_state);
   digitalWrite(POWER_RELAY_PIN, pwr_state);
+  digitalWrite(DOOR_RELAY_PIN, door_state);
 }
