@@ -194,6 +194,7 @@ class SerialHandler(InterruptableThread):
 
         while not self.is_stop_requested():
             readable, _, _ = select.select(read_list, [], [])
+            s = None
             try:
                 for s in readable:
                     if s is command_socket:
@@ -204,14 +205,17 @@ class SerialHandler(InterruptableThread):
                         print(f"Connection from {addr}")
                     else:
                         command, = s.recv(1)
+                        print(f"Received command: {hex(command)}")
                         if command == 0x01:
                             state = s.recv(1)
                             self.serial.write(b"\x03" + state)
+                            print(f"Sent command: {hex(command)} {hex(state[0])}")
             except KeyboardInterrupt:
                 break
             except:
-                pass
-            
+                s.close()
+                read_list.remove(s)
+
             try:
                 if self.serial.in_waiting:
                     command, btn_state = self.serial.read(2)
