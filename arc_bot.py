@@ -197,6 +197,8 @@ class SerialHandler(InterruptableThread):
             for s in readable:
                 if s is command_socket:
                     conn, addr = s.accept()
+                    conn.settimeout(1)
+                    conn.setblocking(False)
                     read_list.append(conn)
                     print(f"Connection from {addr}")
                 else:
