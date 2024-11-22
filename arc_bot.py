@@ -194,18 +194,24 @@ class SerialHandler(InterruptableThread):
 
         while not self.is_stop_requested():
             readable, _, _ = select.select(read_list, [], [])
-            for s in readable:
-                if s is command_socket:
-                    conn, addr = s.accept()
-                    conn.settimeout(1)
-                    conn.setblocking(False)
-                    read_list.append(conn)
-                    print(f"Connection from {addr}")
-                else:
-                    command, = s.recv(1)
-                    if command == 0x01:
-                        state = s.recv(1)
-                        self.serial.write(b"\x03" + state)
+            try:
+                for s in readable:
+                    if s is command_socket:
+                        conn, addr = s.accept()
+                        conn.settimeout(1)
+                        conn.setblocking(False)
+                        read_list.append(conn)
+                        print(f"Connection from {addr}")
+                    else:
+                        command, = s.recv(1)
+                        if command == 0x01:
+                            state = s.recv(1)
+                            self.serial.write(b"\x03" + state)
+            except KeyboardInterrupt:
+                break
+            except:
+                pass
+            
             try:
                 if self.serial.in_waiting:
                     command, btn_state = self.serial.read(2)
