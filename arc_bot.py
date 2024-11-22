@@ -187,6 +187,7 @@ class SerialHandler(InterruptableThread):
 
         # create a command socket
         command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        command_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         command_socket.bind((self.config["bind_address"], self.config["bind_port"]))
         command_socket.listen(1)
         
