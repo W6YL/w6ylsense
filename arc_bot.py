@@ -1,6 +1,8 @@
 import threading
 import shitcord
 import requests
+import socket
+import select
 import serial
 import time
 import json
@@ -37,6 +39,8 @@ class SerialHandler(InterruptableThread):
             "channel_id": None,
             "usb_retries": 5,
             "press_delay": 120,
+            "bind_address": "0.0.0.0",
+            "bind_port": 46099,
             **kwargs
         }
 
@@ -181,7 +185,25 @@ class SerialHandler(InterruptableThread):
         self.initialize_connection()
         st = time.time()
 
+        # create a command socket
+        command_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        command_socket.bind((self.config["bind_address"], self.config["bind_port"]))
+        command_socket.listen(1)
+        
+        read_list = [command_socket]
+
         while not self.is_stop_requested():
+            readable, _, _ = select.select(read_list, [], [])
+            for s in readable:
+                if s is command_socket:
+                    conn, addr = s.accept()
+                    read_list.append(conn)
+                    print(f"Connection from {addr}")
+                else:
+                    command, = s.recv(1)
+                    if command == 0x01:
+                        state = s.recv(1)
+                        self.serial.write(b"\x03" + state)
             try:
                 if self.serial.in_waiting:
                     command, btn_state = self.serial.read(2)
@@ -202,7 +224,6 @@ class SerialHandler(InterruptableThread):
                 self.__handle_power_on_loop()
             except OSError:
                 self.try_reconnect()
-
 
 def main():
     # Load the token from a file
