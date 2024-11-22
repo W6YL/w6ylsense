@@ -210,6 +210,10 @@ class SerialHandler(InterruptableThread):
                             state = s.recv(1)
                             self.serial.write(b"\x03" + state)
                             print(f"Sent command: {hex(command)} {hex(state[0])}")
+                        elif command == 0x0a:
+                            print(f"Received CONN CLOSE")
+                            s.close()
+                            read_list.remove(s)
             except KeyboardInterrupt:
                 break
             except:
