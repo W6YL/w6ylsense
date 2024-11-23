@@ -205,9 +205,11 @@ class SerialHandler(InterruptableThread):
                         read_list.append(conn)
                         print(f"Connection from {addr}")
                     else:
+                        s.settimeout(1)
                         command, = s.recv(1)
                         print(f"Received command: {hex(command)}")
                         if command == 0x01:
+                            s.settimeout(1)
                             state = s.recv(1)
                             self.serial.write(b"\x03" + state)
                             print(f"Sent command: {hex(command)} {hex(state[0])}")
