@@ -194,7 +194,7 @@ class SerialHandler(InterruptableThread):
         read_list = [command_socket]
 
         while not self.is_stop_requested():
-            readable, _, _ = select.select(read_list, [], [])
+            readable, _, _ = select.select(read_list, [], [], 0)
             s = None
             try:
                 for s in readable:
